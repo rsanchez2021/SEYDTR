@@ -210,7 +210,7 @@ void loop(){
 }
 
 void show_tem_hum(){
-  unsigned long endTime = millis() + 5000;
+  long endTime = millis() + 5000;
   // Lo meto dentro del while para que se actualice
   while( millis() < endTime){
     float humidity = dht.readHumidity();
@@ -297,7 +297,7 @@ void loop_admin(){
     if (analogRead(Y_PIN) < 300){
       position_admin += 1;
       delay(500); // Añadimos un delay para que no explote
-      if (position_admin > 5){
+      if (position_admin > 4){
         position_admin = 1;
       }
     }
@@ -344,7 +344,9 @@ void admin_menu(){
       lcd.print("Ver Temperatura");
       break;
     case 2:
-      lcd.print("Ver distancia sensor");
+      lcd.print("Ver distancia");
+      lcd.setCursor(0,1);
+      lcd.print("sensor");
       break;
     case 3:
       lcd.print("Ver contador");
@@ -375,7 +377,8 @@ void sen_loop(){
     d = t/59;
 
     lcd. print("Distancia: ");
-    lcd.print(distance);
+    lcd.setCursor(0,1);
+    lcd.print(d);
     lcd.print("cm");
 
     if (analogRead(X_PIN) < 300){
@@ -387,11 +390,23 @@ void sen_loop(){
 void count_loop(){
   while (loop_count){
     lcd.clear();
-    time = millis() / 1000;
-    lcd.print(time);
 
-    if (analogRead(X_PIN) < 300){
-      loop_count = false;
+    long elapsedTime = millis()/ 1000; // elapsed time in seconds
+
+    int hours = elapsedTime / 3600;
+    int minutes = (elapsedTime % 3600) / 60;
+    int seconds = elapsedTime % 60;
+
+    lcd.print(hours);
+    lcd.print(" hours ");
+    lcd.print(minutes);
+    lcd.print(" min ");
+    lcd.setCursor(0,1);
+    lcd.print(seconds);
+    lcd.print(" sec");
+
+    if (analogRead(X_PIN) < 300) {
+        loop_count = false;
     }
   }
 }
