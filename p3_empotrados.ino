@@ -4,6 +4,7 @@
 #include <StaticThreadController.h>
 #include <ThreadController.h>
 #include <TimerOne.h>
+#include <avr/wdt.h>
 
 ThreadController controller = ThreadController();
 Thread tem_Thread = Thread();
@@ -73,6 +74,7 @@ bool price_loop = false;
 
 void setup() {
   Serial.begin(9600);    //iniciar puerto serie
+  wdt_disable();
   dht.begin();
 
   // LEDs
@@ -111,7 +113,10 @@ void setup() {
   lcd.clear();
 
   // Boot function
-  // Boot();
+  Boot();
+
+  
+  wdt_enable(WDTO_8S);
 }
 
 void callback_ultrasonic(){
@@ -166,6 +171,7 @@ void loop(){
     lcd.print("ESPERANDO");
     lcd.setCursor(0, 1);
     lcd.print("CLIENTE");
+    wdt_reset();
   }
 
   else if (sleep_mode == false){
@@ -197,6 +203,7 @@ void loop(){
       serve_coffe();
     }
 
+    wdt_reset();
     main_menu();
   }
 }
@@ -266,6 +273,7 @@ void serve_coffe(){
     analogWrite(LED2_PIN, intense);
     intense += sum_random;
     delay(1000);
+    wdt_reset();
   }
   analogWrite(LED2_PIN, 0);
   lcd.clear();
@@ -287,24 +295,19 @@ void loop_admin(){
 
     if (analogRead(Y_PIN) < 300){
       position_admin += 1;
-      delay(500); // Añadimos un delay para que no explote
+      delay(500);
       if (position_admin > 4){
         position_admin = 1;
       }
     }
-    // Se ha movido el joystick abajo
     else if (analogRead(Y_PIN) > 700){
       position_admin -= 1;
-      delay(500); // Añadimos un delay para que no explote
+      delay(500);
       if (position_admin < 1){
         position_admin = 4;
       }
     }
-    
-     // Joysticj hacia la izquierda -> mover de aquí
-
     joyState = digitalRead(JOY_BUTTON);
-    // PULLUP -> LOW
     if (joyState == LOW){
       switch (position_admin) {
         case 1:
@@ -325,12 +328,12 @@ void loop_admin(){
           price = true;
           loop_price();
           break;
-  }
+      }
     }
+    wdt_reset();
     admin_menu();
   }
 }
-
 
 void admin_menu(){
   switch (position_admin) {
@@ -357,6 +360,7 @@ void tem_hum_loop(){
     if (analogRead(X_PIN) < 300){
       loop_tem_hum = false;
     }
+    wdt_reset();
   }
 }
 
@@ -378,6 +382,7 @@ void sen_loop(){
     if (analogRead(X_PIN) < 300){
       loop_sen = false;
     }
+    wdt_reset();
   }
 }
 
@@ -402,6 +407,7 @@ void count_loop(){
     if (analogRead(X_PIN) < 300) {
         loop_count = false;
     }
+    wdt_reset();
   }
 }
 
@@ -410,24 +416,21 @@ void loop_price(){
     lcd.clear();
     if (analogRead(Y_PIN) < 300){
       position += 1;
-      delay(500); // Añadimos un delay para que no explote
+      delay(500);
       if (position > 5){
         position = 1;
       }
     }
-    // Se ha movido el joystick abajo
     else if (analogRead(Y_PIN) > 700){
       position -= 1;
-      delay(500); // Añadimos un delay para que no explote
+      delay(500);
       if (position < 1){
         position = 5;
       }
-    } // Joysticj hacia la izquierda -> mover de aquí
-
+    }
     else if (analogRead(X_PIN) > 700){
       price = false;
     }
-
     joyState = digitalRead(JOY_BUTTON);
     if (joyState == LOW){
       price_loop = true;
@@ -447,9 +450,11 @@ void loop_price(){
         change_price(name5,coffe5);
       }
     }
+    wdt_reset();
     main_menu();
   }
 }
+
 void change_price(String name, float coffe){
   while (price_loop){
     lcd.clear();
@@ -464,7 +469,6 @@ void change_price(String name, float coffe){
       coffe = coffe - 0.05;
       delay(500);
     }
-
     else if (analogRead(X_PIN) > 700){
       price_loop = false;
     }
@@ -487,5 +491,6 @@ void change_price(String name, float coffe){
       }
       price_loop = false;
     }
+    wdt_reset();
   }
 }
