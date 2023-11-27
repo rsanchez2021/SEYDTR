@@ -31,16 +31,6 @@ const int Distance = 20; // Distancia cliente
 
 //Crear el objeto LCD con los números correspondientes (rs, en, d4, d5, d6, d7)
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-byte customChar[] = {
-  B00000,
-  B01110,
-  B01010,
-  B01110,
-  B00000,
-  B00000,
-  B00000,
-  B00000
-};
 
 // Joystick
 int JOY_BUTTON = 8;
@@ -54,6 +44,7 @@ int sum_random = 0;
 int intense = 0;
 int position = 1;
 int position_admin = 1;
+int position_price = 1;
 int time = 0;
 int distance = 0;
 float temperature = 0;
@@ -74,9 +65,11 @@ long randNumber;
 
 bool show_t_h = true;
 bool admin = true;
+bool price = false;
 bool loop_tem_hum = false;
 bool loop_sen = false;
 bool loop_count = false;
+bool price_loop = false;
 
 void setup() {
   Serial.begin(9600);    //iniciar puerto serie
@@ -95,7 +88,6 @@ void setup() {
   digitalWrite(Trigger, LOW);
   // Inicializar el LCD con el número de  columnas y filas del LCD
   lcd.begin(16, 2);
-  lcd.createChar(0, customChar);
 
   // Joystick
   pinMode(JOY_BUTTON, INPUT_PULLUP);
@@ -120,7 +112,6 @@ void setup() {
 
   // Boot function
   // Boot();
-  
 }
 
 void callback_ultrasonic(){
@@ -148,6 +139,7 @@ void callback_temperature(){
   temperature = dht.readTemperature();
   lcd.print("Temp: ");
   lcd.print(temperature);
+  lcd.write(223);
   lcd.print("C");
 }
 
@@ -160,7 +152,7 @@ void callback_humidity(){
 }
 
 void loop(){
-  loop_admin(); // Meter una variable, si es verdad ir a admin con interrupciones
+  //loop_admin(); // Meter una variable, si es verdad ir a admin con interrupciones
 
   // Compruebo el ultrasonido
   if(ult_Thread.shouldRun()){
@@ -281,17 +273,16 @@ void serve_coffe(){
   delay(3000);
 }
 
-void show_menu(String name, float price){
+void show_menu(String name, float coffe){
   lcd.print(name);
   lcd.setCursor(0,1);
-  lcd.print(price);
+  lcd.print(coffe);
 }
 
 void loop_admin(){
   analogWrite(LED2_PIN, 255);
   digitalWrite(LED1_PIN, HIGH);
   while (admin){
-
     lcd.clear();
 
     if (analogRead(Y_PIN) < 300){
@@ -308,7 +299,9 @@ void loop_admin(){
       if (position_admin < 1){
         position_admin = 4;
       }
-    } // Joysticj hacia la izquierda -> mover de aquí
+    }
+    
+     // Joysticj hacia la izquierda -> mover de aquí
 
     joyState = digitalRead(JOY_BUTTON);
     // PULLUP -> LOW
@@ -329,7 +322,8 @@ void loop_admin(){
           count_loop();
           break;
         case 4:
-          //price_loop();
+          price = true;
+          loop_price();
           break;
   }
     }
@@ -407,6 +401,91 @@ void count_loop(){
 
     if (analogRead(X_PIN) < 300) {
         loop_count = false;
+    }
+  }
+}
+
+void loop_price(){
+  while (price){
+    lcd.clear();
+    if (analogRead(Y_PIN) < 300){
+      position += 1;
+      delay(500); // Añadimos un delay para que no explote
+      if (position > 5){
+        position = 1;
+      }
+    }
+    // Se ha movido el joystick abajo
+    else if (analogRead(Y_PIN) > 700){
+      position -= 1;
+      delay(500); // Añadimos un delay para que no explote
+      if (position < 1){
+        position = 5;
+      }
+    } // Joysticj hacia la izquierda -> mover de aquí
+
+    else if (analogRead(X_PIN) > 700){
+      price = false;
+    }
+
+    joyState = digitalRead(JOY_BUTTON);
+    if (joyState == LOW){
+      price_loop = true;
+      if (position == 1){
+        change_price(name1,coffe1);
+      }
+      else if (position == 2){
+        change_price(name2,coffe2);
+      }
+      else if (position == 3){
+        change_price(name3,coffe3);
+      }
+      else if (position == 4){
+        change_price(name4,coffe4);
+      }
+      else if (position == 5){
+        change_price(name5,coffe5);
+      }
+    }
+    main_menu();
+  }
+}
+void change_price(String name, float coffe){
+  while (price_loop){
+    lcd.clear();
+    lcd.print(name);
+    lcd.setCursor(0, 1);
+    lcd.print(coffe);
+    if (analogRead(Y_PIN) < 300){
+      coffe = coffe + 0.05;
+      delay(500);
+    }
+    else if (analogRead(Y_PIN) > 700){
+      coffe = coffe - 0.05;
+      delay(500);
+    }
+
+    else if (analogRead(X_PIN) > 700){
+      price_loop = false;
+    }
+    joyState = digitalRead(JOY_BUTTON);
+    if (joyState == LOW){
+      if (position == 1){
+        coffe1 = coffe;
+      }
+      else if (position == 2){
+        coffe2 = coffe;
+      }
+      else if (position == 3){
+        coffe3 = coffe;
+      }
+      else if (position == 4){
+        coffe4 = coffe;
+      }
+      else if (position == 5){
+        coffe5 = coffe;
+      }
+      price_loop = false;
     }
   }
 }
