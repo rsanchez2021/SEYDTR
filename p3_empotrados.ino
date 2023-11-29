@@ -20,8 +20,8 @@ DHT dht(DHTPIN, DHTTYPE);
 const int LED1_PIN = A2;
 const int LED2_PIN = 10;
 
-// BUTTON
-const int BUTTON_PIN = 9;
+// BUTTON -> Pin 2 Interrupciones
+const int BUTTON_PIN = 2;
 
 // Ultrasonic
 const int Trigger = 7;
@@ -31,7 +31,7 @@ bool sleep_mode = false;
 const int Distance = 20; // Distancia cliente
 
 //Crear el objeto LCD con los números correspondientes (rs, en, d4, d5, d6, d7)
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+LiquidCrystal lcd(12, 11, 5, 4, 3, 9);
 
 // Joystick
 int JOY_BUTTON = 8;
@@ -39,14 +39,13 @@ int X_PIN = A1;
 int Y_PIN = A0;
 
 // VARIABLES
-int buttonState = 0;
+
 int joyState = 0;
 int sum_random = 0;
 int intense = 0;
 int position = 1;
 int position_admin = 1;
 int position_price = 1;
-int time = 0;
 int distance = 0;
 float temperature = 0;
 float humidity = 0;
@@ -64,13 +63,26 @@ float coffe5 = 2.00;
 
 long randNumber;
 
+long elapsedTime;
+
 bool show_t_h = true;
-bool admin = true;
+
 bool price = false;
+
 bool loop_tem_hum = false;
 bool loop_sen = false;
 bool loop_count = false;
 bool price_loop = false;
+bool state = true;
+
+volatile int buttonState = 0;
+volatile bool interruption = false;
+volatile bool pressed = false;
+volatile bool one_time = false;
+volatile bool admin = false;
+volatile long time;
+volatile long time_pressed;
+volatile long time2_pressed;
 
 void setup() {
   Serial.begin(9600);    //iniciar puerto serie
@@ -110,10 +122,14 @@ void setup() {
   controller.add(&tem_Thread);
   controller.add(&hum_Thread);
 
+  
   lcd.clear();
 
   // Boot function
-  Boot();
+  //Boot();
+
+  // Interrupciones
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), button_h_isr, CHANGE);
 
   
   wdt_enable(WDTO_8S);
@@ -156,7 +172,32 @@ void callback_humidity(){
   lcd.print("%");
 }
 
+
+void button_h_isr(){
+  buttonState = digitalRead(BUTTON_PIN);
+  time2_pressed = millis();
+
+  if (buttonState == LOW){
+    pressed = true;
+    time_pressed = millis();
+    Serial.println(time_pressed);
+  }
+  else if (buttonState == HIGH && pressed == true){
+    pressed = false;
+    time = time2_pressed - time_pressed;
+    Serial.println(time);
+    if (time > 5000){
+      admin = true;
+      noInterrupts();
+      loop_admin();
+    }
+  }
+}
+
 void loop(){
+    // PULLUP -> LO
+  
+  
   //loop_admin(); // Meter una variable, si es verdad ir a admin con interrupciones
 
   // Compruebo el ultrasonido
@@ -262,8 +303,8 @@ void Boot(){
 
 void serve_coffe(){
   randNumber = random(4,9); // select random number between 4 and 8
-  Serial.println(randNumber);
   sum_random = 255 / randNumber; // Lo que tiene que sumar cada segundo
+  Serial.println("aaaaaaaaaaaa");
   intense = 0;
   lcd.print("PREPARANDO");
   lcd.setCursor(0,1);
@@ -390,7 +431,7 @@ void count_loop(){
   while (loop_count){
     lcd.clear();
 
-    long elapsedTime = millis()/ 1000; // elapsed time in seconds
+    elapsedTime = millis()/ 1000; // elapsed time in seconds
 
     int hours = elapsedTime / 3600;
     int minutes = (elapsedTime % 3600) / 60;
