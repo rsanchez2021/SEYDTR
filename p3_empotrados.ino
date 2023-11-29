@@ -129,7 +129,7 @@ void setup() {
   //Boot();
 
   // Interrupciones
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), button_h_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), button_h_isr, RISING);
 
   
   wdt_enable(WDTO_8S);
@@ -155,7 +155,6 @@ void callback_ultrasonic(){
 }
 
 void callback_temperature(){
-  Serial.println("Temperatura");
   lcd.setCursor(0,0);
   temperature = dht.readTemperature();
   lcd.print("Temp: ");
@@ -172,32 +171,29 @@ void callback_humidity(){
   lcd.print("%");
 }
 
-
 void button_h_isr(){
-  buttonState = digitalRead(BUTTON_PIN);
   time2_pressed = millis();
-
-  if (buttonState == LOW){
-    pressed = true;
-    time_pressed = millis();
-    Serial.println(time_pressed);
-  }
-  else if (buttonState == HIGH && pressed == true){
-    pressed = false;
-    time = time2_pressed - time_pressed;
-    Serial.println(time);
-    if (time > 5000){
-      admin = true;
-      noInterrupts();
-      loop_admin();
-    }
-  }
+  one_time = true;
+  Serial.println(time2_pressed);
 }
 
 void loop(){
-    // PULLUP -> LO
-  
-  
+
+  buttonState = digitalRead(BUTTON_PIN);
+  if (buttonState == LOW && one_time == true){
+    time_pressed = millis();
+    Serial.println(time_pressed);
+    one_time = false;
+  }
+  if (time2_pressed - time_pressed > 5000){
+    admin = true;
+    time2_pressed = 0;
+    time_pressed = 0;
+    loop_admin();
+  } 
+  else if (time2_pressed - time_pressed < 3000 && time2_pressed - time_pressed > 2000){
+    //resetear loop;
+  }
   //loop_admin(); // Meter una variable, si es verdad ir a admin con interrupciones
 
   // Compruebo el ultrasonido
@@ -334,6 +330,22 @@ void loop_admin(){
   while (admin){
     lcd.clear();
 
+    buttonState = digitalRead(BUTTON_PIN);
+    if (buttonState == LOW && one_time == true){
+      time_pressed = millis();
+      one_time = false;
+      Serial.println(time_pressed);
+      time = time2_pressed - time_pressed;
+      Serial.println(time);
+    }
+    if (time2_pressed - time_pressed > 5000){
+      analogWrite(LED2_PIN, 0);
+      digitalWrite(LED1_PIN, LOW);
+      time2_pressed = 0;
+      time_pressed = 0;
+      admin = false;
+    } 
+    
     if (analogRead(Y_PIN) < 300){
       position_admin += 1;
       delay(500);
