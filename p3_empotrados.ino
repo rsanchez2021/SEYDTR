@@ -9,7 +9,7 @@
 ThreadController controller = ThreadController();
 Thread tem_Thread = Thread();
 Thread hum_Thread = Thread();
-Thread ult_Thread = Thread(); //Thread del ultrasonidos
+Thread ult_Thread = Thread();
 
 // DHT11
 #define DHTPIN 13
@@ -39,7 +39,6 @@ int X_PIN = A1;
 int Y_PIN = A0;
 
 // VARIABLES
-
 int joyState = 0;
 int sum_random = 0;
 int intense = 0;
@@ -68,14 +67,13 @@ long time_pressed;
 
 bool show_t_h = true;
 bool price = false;
-
 bool loop_tem_hum = false;
 bool loop_sen = false;
 bool loop_count = false;
 bool price_loop = false;
 bool admin = true;
 
-// VAriables en interrupciones
+// Variables en interrupciones
 volatile bool one_time = false;
 volatile long time2_pressed;
 
@@ -87,17 +85,14 @@ void setup() {
   // LEDs
   pinMode(LED1_PIN , OUTPUT);
   pinMode(LED2_PIN , OUTPUT);
-
   // BUTTON
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-
   //Ultrasonic
   pinMode(Trigger, OUTPUT);
   pinMode(Echo, INPUT);
   digitalWrite(Trigger, LOW);
   // Inicializar el LCD con el número de  columnas y filas del LCD
   lcd.begin(16, 2);
-
   // Joystick
   pinMode(JOY_BUTTON, INPUT_PULLUP);
 
@@ -117,15 +112,11 @@ void setup() {
   controller.add(&tem_Thread);
   controller.add(&hum_Thread);
 
-  
-  lcd.clear();
-
-  // Boot function
-  //Boot();
+  Boot();
+  image.png
 
   // Interrupciones
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), button_h_isr, RISING);
-
   
   wdt_enable(WDTO_8S);
 }
@@ -133,34 +124,32 @@ void setup() {
 void callback_ultrasonic(){
 
   digitalWrite(Trigger, HIGH);
-  delayMicroseconds(10);          //Enviamos un pulso de 10us
+  delayMicroseconds(10);  // Send a 10us pulse
   digitalWrite(Trigger, LOW);
 
-  t = pulseIn(Echo, HIGH); //obtenemos el ancho del pulso
-  d = t/59;             //escalamos el tiempo a una distancia en cm
+  t = pulseIn(Echo, HIGH);  // Get the pulse width
+  d = t/59;  // Scale time to distance in cm
   if(d >= Distance){
     sleep_mode = true;
-    show_t_h = true; //cuando vuelva el cliente se mostrará la temeperatura
-  }
-  else{
+    show_t_h = true;  // When the customer returns, the temperature will be displayed
+  } else{
     sleep_mode = false;
   }
   return sleep_mode;
-  // Comprobar la distancia, si la distancia es mayor de 1m -> modo suspnsión sino vuelvo al loop y muestro menú
 }
 
 void callback_temperature(){
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   temperature = dht.readTemperature();
   lcd.print("Temp: ");
   lcd.print(temperature);
-  lcd.write(223);
+  lcd.write(223);  // Show º
   lcd.print("C");
 }
 
 void callback_humidity(){
   humidity = dht.readHumidity();
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("Hum: ");
   lcd.print(humidity);
   lcd.print("%");
@@ -172,24 +161,23 @@ void button_h_isr(){
 }
 
 void loop(){
-
   buttonState = digitalRead(BUTTON_PIN);
+
   if (buttonState == LOW && one_time == true){
     time_pressed = millis();
     one_time = false;
   }
+
   if (time2_pressed - time_pressed > 5000){
     admin = true;
     time2_pressed = 0;
     time_pressed = 0;
     loop_admin();
-  } 
-  else if (time2_pressed - time_pressed < 3000 && time2_pressed - time_pressed > 2000){
-    //resetear loop;
+  } else if (time2_pressed - time_pressed < 3000 && time2_pressed - time_pressed > 2000){
+    Boot();
   }
-  //loop_admin(); // Meter una variable, si es verdad ir a admin con interrupciones
 
-  // Compruebo el ultrasonido
+  // Check ultrasound
   if(ult_Thread.shouldRun()){
     ult_Thread.run();
   }
@@ -202,31 +190,15 @@ void loop(){
     lcd.setCursor(0, 1);
     lcd.print("CLIENTE");
     wdt_reset();
-  }
-
-  else if (sleep_mode == false){
-    // Muestro la temperatura si vuelvo al menú
+  } else if (sleep_mode == false){
+    // Display temperature if returning to the menu
     if (show_t_h == true){
       show_tem_hum();
     }
 
-    // Compruebo si el joystick se ha movido hacia un lado o hacia otro
-    // Se ha movido hacia arriba
-    if (analogRead(Y_PIN) < 300){
-      position += 1;
-      delay(500); // Añadimos un delay para que no explote
-      if (position > 5){
-        position = 1;
-      }
-    }
-    // Se ha movido el joystick abajo
-    else if (analogRead(Y_PIN) > 700){
-      position -= 1;
-      delay(500); // Añadimos un delay para que no explote
-      if (position < 1){
-        position = 5;
-      }
-    }
+    // Check if the joystick has moved left or right
+    joystick_state();
+
     joyState = digitalRead(JOY_BUTTON);
     // PULLUP -> LOW
     if (joyState == LOW){
@@ -237,9 +209,30 @@ void loop(){
   }
 }
 
+void joystick_state(){
+  if (analogRead(Y_PIN) < 300){
+    position += 1;
+    position_admin += 1;
+    if (position > 5){
+      position = 1;
+    } else if (position_admin > 4){
+      position_admin = 1;
+    }
+    delay(500);
+  } else if (analogRead(Y_PIN) > 700){
+    position -= 1;
+    position_admin -= 1;
+    if (position < 1){
+      position = 5;
+    } else if (position_admin < 1){
+      position_admin = 4;
+    }
+  }
+}
+
 void show_tem_hum(){
   long endTime = millis() + 5000;
-  // Lo meto dentro del while para que se actualice
+
   while( millis() < endTime){
     float humidity = dht.readHumidity();
     temperature = dht.readTemperature();
@@ -248,10 +241,10 @@ void show_tem_hum(){
       Serial.println(F("Failed to read from DHT sensor!"));
       return;
     }
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     lcd.print("Hum: ");
     lcd.print(humidity);
-    lcd.setCursor(0,1);
+    lcd.setCursor(0, 1);
     lcd.print("Temp: ");
     lcd.print(temperature);
   }
@@ -261,19 +254,19 @@ void show_tem_hum(){
 void main_menu(){
   switch (position) {
     case 1:
-      show_menu(name1,coffe1);
+      show_menu(name1, coffe1);
       break;
     case 2:
-      show_menu(name2,coffe2);
+      show_menu(name2, coffe2);
       break;
     case 3:
-      show_menu(name3,coffe3);
+      show_menu(name3, coffe3);
       break;
     case 4:
-      show_menu(name4,coffe4);
+      show_menu(name4, coffe4);
       break;
     case 5:
-      show_menu(name5,coffe5);
+      show_menu(name5, coffe5);
       break;
   }
 }
@@ -289,11 +282,11 @@ void Boot(){
 }
 
 void serve_coffe(){
-  randNumber = random(4,9); // select random number between 4 and 8
-  sum_random = 255 / randNumber; // Lo que tiene que sumar cada segundo
+  randNumber = random(4,9);  // Select random number between 4 and 8
+  sum_random = 255 / randNumber;  // The amount to increment each second
   intense = 0;
   lcd.print("PREPARANDO");
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("CAFE ...");
   
   for( int t = 0; t < randNumber; t++){
@@ -310,7 +303,7 @@ void serve_coffe(){
 
 void show_menu(String name, float coffe){
   lcd.print(name);
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(coffe);
 }
 
@@ -334,20 +327,8 @@ void loop_admin(){
       admin = false;
     } 
 
-    if (analogRead(Y_PIN) < 300){
-      position_admin += 1;
-      delay(500);
-      if (position_admin > 4){
-        position_admin = 1;
-      }
-    }
-    else if (analogRead(Y_PIN) > 700){
-      position_admin -= 1;
-      delay(500);
-      if (position_admin < 1){
-        position_admin = 4;
-      }
-    }
+    joystick_state();
+
     joyState = digitalRead(JOY_BUTTON);
     if (joyState == LOW){
       switch (position_admin) {
@@ -409,14 +390,14 @@ void sen_loop(){
   while (loop_sen){
     lcd.clear();
     digitalWrite(Trigger, HIGH);
-    delayMicroseconds(10);          //Enviamos un pulso de 10us
+    delayMicroseconds(10);
     digitalWrite(Trigger, LOW);
 
-    t = pulseIn(Echo, HIGH); //obtenemos el ancho del pulso
+    t = pulseIn(Echo, HIGH);
     d = t/59;
 
     lcd. print("Distancia: ");
-    lcd.setCursor(0,1);
+    lcd.setCursor(0, 1);
     lcd.print(d);
     lcd.print("cm");
 
@@ -431,7 +412,7 @@ void count_loop(){
   while (loop_count){
     lcd.clear();
 
-    elapsedTime = millis()/ 1000; // elapsed time in seconds
+    elapsedTime = millis()/ 1000;
 
     int hours = elapsedTime / 3600;
     int minutes = (elapsedTime % 3600) / 60;
@@ -455,40 +436,26 @@ void count_loop(){
 void loop_price(){
   while (price){
     lcd.clear();
-    if (analogRead(Y_PIN) < 300){
-      position += 1;
-      delay(500);
-      if (position > 5){
-        position = 1;
-      }
-    }
-    else if (analogRead(Y_PIN) > 700){
-      position -= 1;
-      delay(500);
-      if (position < 1){
-        position = 5;
-      }
-    }
-    else if (analogRead(X_PIN) > 700){
+
+    joystick_state();
+
+    if (analogRead(X_PIN) > 700){
       price = false;
     }
+
     joyState = digitalRead(JOY_BUTTON);
     if (joyState == LOW){
       price_loop = true;
       if (position == 1){
-        change_price(name1,coffe1);
-      }
-      else if (position == 2){
-        change_price(name2,coffe2);
-      }
-      else if (position == 3){
-        change_price(name3,coffe3);
-      }
-      else if (position == 4){
-        change_price(name4,coffe4);
-      }
-      else if (position == 5){
-        change_price(name5,coffe5);
+        change_price(name1, coffe1);
+      } else if (position == 2){
+        change_price(name2, coffe2);
+      } else if (position == 3){
+        change_price(name3, coffe3);
+      } else if (position == 4){
+        change_price(name4, coffe4);
+      } else if (position == 5){
+        change_price(name5, coffe5);
       }
     }
     wdt_reset();
@@ -502,24 +469,30 @@ void change_price(String name, float coffe){
     lcd.print(name);
     lcd.setCursor(0, 1);
     lcd.print(coffe);
+
     if (analogRead(Y_PIN) < 300){
       coffe = coffe + 0.05;
       delay(500);
-    }
-    else if (analogRead(Y_PIN) > 700){
+    } else if (analogRead(Y_PIN) > 700){
       coffe = coffe - 0.05;
       delay(500);
-    }
-    else if (analogRead(X_PIN) > 700){
+    } else if (analogRead(X_PIN) > 700){
       price_loop = false;
     }
+
     joyState = digitalRead(JOY_BUTTON);
     if (joyState == LOW){
-      if (position == 1){coffe1 = coffe;}
-      else if (position == 2){coffe2 = coffe;}
-      else if (position == 3){coffe3 = coffe;}
-      else if (position == 4){coffe4 = coffe;}
-      else if (position == 5){coffe5 = coffe;}
+      if (position == 1){
+        coffe1 = coffe;
+      } else if (position == 2){
+        coffe2 = coffe;
+      } else if (position == 3){
+        coffe3 = coffe;
+      } else if (position == 4){
+        coffe4 = coffe;
+      } else if (position == 5){
+        coffe5 = coffe;
+      }
       price_loop = false;
     }
     wdt_reset();
