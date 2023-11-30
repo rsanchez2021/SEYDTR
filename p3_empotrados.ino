@@ -46,9 +46,9 @@ int intense = 0;
 int position = 1;
 int position_admin = 1;
 int position_price = 1;
-int distance = 0;
 float temperature = 0;
 float humidity = 0;
+int buttonState = 0;
 
 String name1 = "Cafe solo";
 float coffe1 = 1;
@@ -62,26 +62,21 @@ String name5 = "Chocolate";
 float coffe5 = 2.00;
 
 long randNumber;
-
 long elapsedTime;
+long time;
+long time_pressed;
 
 bool show_t_h = true;
-
 bool price = false;
 
 bool loop_tem_hum = false;
 bool loop_sen = false;
 bool loop_count = false;
 bool price_loop = false;
-bool state = true;
+bool admin = true;
 
-volatile int buttonState = 0;
-volatile bool interruption = false;
-volatile bool pressed = false;
+// VAriables en interrupciones
 volatile bool one_time = false;
-volatile bool admin = false;
-volatile long time;
-volatile long time_pressed;
 volatile long time2_pressed;
 
 void setup() {
@@ -174,7 +169,6 @@ void callback_humidity(){
 void button_h_isr(){
   time2_pressed = millis();
   one_time = true;
-  Serial.println(time2_pressed);
 }
 
 void loop(){
@@ -182,7 +176,6 @@ void loop(){
   buttonState = digitalRead(BUTTON_PIN);
   if (buttonState == LOW && one_time == true){
     time_pressed = millis();
-    Serial.println(time_pressed);
     one_time = false;
   }
   if (time2_pressed - time_pressed > 5000){
@@ -239,7 +232,6 @@ void loop(){
     if (joyState == LOW){
       serve_coffe();
     }
-
     wdt_reset();
     main_menu();
   }
@@ -289,7 +281,6 @@ void main_menu(){
 void Boot(){
   lcd.print("CARGANDO...");
   for (int i = 1; i < 3; i++){
-    Serial.print(i);
     digitalWrite(LED1_PIN , HIGH);
     delay(1000);
     digitalWrite(LED1_PIN , LOW);
@@ -300,7 +291,6 @@ void Boot(){
 void serve_coffe(){
   randNumber = random(4,9); // select random number between 4 and 8
   sum_random = 255 / randNumber; // Lo que tiene que sumar cada segundo
-  Serial.println("aaaaaaaaaaaa");
   intense = 0;
   lcd.print("PREPARANDO");
   lcd.setCursor(0,1);
@@ -334,9 +324,7 @@ void loop_admin(){
     if (buttonState == LOW && one_time == true){
       time_pressed = millis();
       one_time = false;
-      Serial.println(time_pressed);
       time = time2_pressed - time_pressed;
-      Serial.println(time);
     }
     if (time2_pressed - time_pressed > 5000){
       analogWrite(LED2_PIN, 0);
@@ -345,7 +333,7 @@ void loop_admin(){
       time_pressed = 0;
       admin = false;
     } 
-    
+
     if (analogRead(Y_PIN) < 300){
       position_admin += 1;
       delay(500);
@@ -527,21 +515,11 @@ void change_price(String name, float coffe){
     }
     joyState = digitalRead(JOY_BUTTON);
     if (joyState == LOW){
-      if (position == 1){
-        coffe1 = coffe;
-      }
-      else if (position == 2){
-        coffe2 = coffe;
-      }
-      else if (position == 3){
-        coffe3 = coffe;
-      }
-      else if (position == 4){
-        coffe4 = coffe;
-      }
-      else if (position == 5){
-        coffe5 = coffe;
-      }
+      if (position == 1){coffe1 = coffe;}
+      else if (position == 2){coffe2 = coffe;}
+      else if (position == 3){coffe3 = coffe;}
+      else if (position == 4){coffe4 = coffe;}
+      else if (position == 5){coffe5 = coffe;}
       price_loop = false;
     }
     wdt_reset();
