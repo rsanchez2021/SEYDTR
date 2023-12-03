@@ -3,7 +3,6 @@
 #include <Thread.h>
 #include <StaticThreadController.h>
 #include <ThreadController.h>
-#include <TimerOne.h>
 #include <avr/wdt.h>
 
 //  Thread and controller
@@ -29,9 +28,9 @@ const int TRIGGER_PIN = 7;
 const int ECHO_PIN = 6;
 long timeElapsed, distance;  // Time and distance
 bool sleepMode  = false;
-const int DISTANCE = 20;  // Customer distance
+const int DISTANCE = 100;  // Customer distance
 
-//Crear el objeto LCD con los números correspondientes (rs, en, d4, d5, d6, d7)
+// Create LCD object with corresponding pins (rs, en, d4, d5, d6, d7)
 LiquidCrystal lcd(12, 11, 5, 4, 3, 9);
 
 // Joystick
@@ -43,7 +42,7 @@ int Y_PIN = A0;
 int joyState = 0;
 int sumRandom = 0;
 int ledIntensity = 0;
-int position = 1;
+int position = 0;
 int adminPosition = 1;
 float currentTemperature = 0;
 float currentHumidity  = 0;
@@ -74,13 +73,13 @@ bool loop_count = false;
 bool price_loop = false;
 bool admin = true;
 
-// Variables en interrupciones
+// Variables in interruptions
 volatile bool one_time = false;
 volatile long time2_pressed;
 
 
 void setup() {
-  Serial.begin(9600);  //iniciar puerto serie
+  Serial.begin(9600);  // Start serial port
   wdt_disable();
   dht.begin();
 
@@ -93,31 +92,30 @@ void setup() {
   pinMode(TRIGGER_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   digitalWrite(TRIGGER_PIN, LOW);
-  // Inicializar el LCD con el número de  columnas y filas del LCD
+  // Initialize the LCD with the number of columns and rows of the LCD
   lcd.begin(16, 2);
   // Joystick
   pinMode(JOY_BUTTON, INPUT_PULLUP);
 
-  // Thread ultrasonic (no en el controlador)
+  // Thread ultrasonic (not in the controller)
   ult_Thread.enabled = true;
   ult_Thread.setInterval(2000);
   ult_Thread.onRun(callback_ultrasonic);
 
   tem_Thread.enabled = true;
-  tem_Thread.setInterval(500);  //Cada medio segundo
+  tem_Thread.setInterval(500);  // Every half-second
   tem_Thread.onRun(callback_temperature);
 
   hum_Thread.enabled = true;
-  hum_Thread.setInterval(550);  //Cada medio segundo
+  hum_Thread.setInterval(500);  // Every half-second
   hum_Thread.onRun(callback_humidity);
 
   controller.add(&tem_Thread);
   controller.add(&hum_Thread);
 
   Boot();
-  Serial.println();
 
-  // Interrupciones
+  // Interuption
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), button_h_isr, RISING);
 
   wdt_enable(WDTO_8S);
@@ -142,15 +140,15 @@ void callback_ultrasonic() {
 
 void callback_temperature() {
   lcd.setCursor(0, 0);
-  currentTemperature = dht.readTemperature();
+  currentTemperature = dht.readTemperature();  // Read temperature from DHT sensor
   lcd.print("Temp: ");
   lcd.print(currentTemperature);
-  lcd.write(223);  // Show º
+  lcd.write(223);  // Display degree symbol (º)
   lcd.print("C");
 }
 
 void callback_humidity() {
-  currentHumidity  = dht.readHumidity();
+  currentHumidity  = dht.readHumidity();  // Read humidity from DHT sensor
   lcd.setCursor(0, 1);
   lcd.print("Hum: ");
   lcd.print(currentHumidity );
@@ -165,21 +163,23 @@ void button_h_isr() {
 void loop() {
   buttonState = digitalRead(BUTTON_PIN);
 
+  // Check if the button is pressed and the ISR has been executed
   if (buttonState == LOW && one_time == true) {
     time_pressed = millis();
     one_time = false;
   }
 
+  // Check the duration of button press and take appropriate actions
   if (time2_pressed - time_pressed > 5000) {
     admin = true;
     time2_pressed = 0;
     time_pressed = 0;
-    loop_admin();
+    loop_admin();  // Go to admin menu if the button is pressed for more than 5 seconds
   } else if (time2_pressed - time_pressed < 3000 && time2_pressed - time_pressed > 2000) {
     time2_pressed = 0;
     time_pressed = 0;
     lcd.clear();
-    Boot();
+    Boot();  // Reset the system if the button is pressed for 2-3 seconds
   }
 
   // Check ultrasound
@@ -207,7 +207,6 @@ void loop() {
       serve_coffe();
     }
     wdt_reset();
-    
   }
 }
 
@@ -241,6 +240,7 @@ void show_tem_hum() {
     float currentHumidity  = dht.readHumidity();
     currentTemperature = dht.readTemperature();
 
+    // Check if sensor readings are valid
     if (isnan(currentHumidity ) || isnan(currentTemperature)) {
       Serial.println(F("Failed to read from DHT sensor!"));
       return;
@@ -294,7 +294,7 @@ void serve_coffe() {
   lcd.print("PREPARANDO");
   lcd.setCursor(0, 1);
   lcd.print("CAFE ...");
-
+  // Increment LED intensity
   for (int t = 0; t < randNumber; t++) {
     analogWrite(LED2_PIN, ledIntensity );
     ledIntensity  += sumRandom;
@@ -320,8 +320,8 @@ void show_menu(String name, float coffe) {
 void loop_admin() {
   analogWrite(LED2_PIN, 255);
   digitalWrite(LED1_PIN, HIGH);
-  lcd.clear();
   while (admin) {
+    lcd.clear();
 
     buttonState = digitalRead(BUTTON_PIN);
     if (buttonState == LOW && one_time == true) {
@@ -335,6 +335,7 @@ void loop_admin() {
       time2_pressed = 0;
       time_pressed = 0;
       admin = false;
+      lcd.clear();
     }
 
     joystick_state();
@@ -363,6 +364,7 @@ void loop_admin() {
       }
     }
     wdt_reset();
+    
     admin_menu();
   }
 }
@@ -388,7 +390,7 @@ void admin_menu() {
 
 void tem_hum_loop() {
   while (loop_tem_hum) {
-    controller.run();
+    controller.run();  // Run temperature and humidity threads
     if (analogRead(X_PIN) < 300) {
       loop_tem_hum = false;
     }
@@ -397,8 +399,10 @@ void tem_hum_loop() {
 }
 
 void sen_loop() {
+  lcd.clear();
+  lcd.print("Distancia: ");
   while (loop_sen) {
-    lcd.clear();
+    
     digitalWrite(TRIGGER_PIN, HIGH);
     delayMicroseconds(10);
     digitalWrite(TRIGGER_PIN, LOW);
@@ -406,7 +410,6 @@ void sen_loop() {
     timeElapsed = pulseIn(ECHO_PIN, HIGH);
     distance = timeElapsed / 59;
 
-    lcd.print("Distancia: ");
     lcd.setCursor(0, 1);
     lcd.print(distance);
     lcd.print("cm");
@@ -490,6 +493,7 @@ void change_price(String name, float coffe) {
 
     joyState = digitalRead(JOY_BUTTON);
     if (joyState == LOW) {
+      // Update the corresponding coffee price
       if (position == 1) {
         coffe1 = coffe;
       } else if (position == 2) {
