@@ -5,7 +5,7 @@
 * [Librerías y arranque][lib]
 * [Servicio][serv]
 * [Administrador][admin]
-* [Vídeos][vid]
+* [Vídeo][vid]
 
   [intro]: https://github.com/rsanchez2021/SEYDTR/blob/main/README.md#introducción
   [lib]: https://github.com/rsanchez2021/SEYDTR/blob/main/README.md#librerías-y-arranque
@@ -30,7 +30,8 @@ Componentes:
 
 ### Esquema
 
-AÑADIR IMAGEN FRIZTING
+![WhatsApp Image 2023-12-03 at 15 22 06](https://github.com/rsanchez2021/SEYDTR/assets/113595025/18c6adc6-1c91-4573-a7a1-1d35ef218ecf)
+
 
 Al conectar los componentes, es necesario establecer algunas configuraciones de antemano. Uno de los LEDs debe estar conectado a un pin PWM para permitir el control de su intensidad luminosa. Ambos botones, tanto el joystick como el botón normal, deben estar en un pin digital para poder declararlos como pull-up, lo que ahorra la necesidad de poner más componentes en la protoboard.
 ```c
@@ -142,3 +143,4 @@ void loop_price(){
 ```
 
 ## Vídeo 
+Para poder ver el vídeo pincha [aquí](https://youtu.be/4POelxX-k3E), te llevará a un vídeo de YouTube.
